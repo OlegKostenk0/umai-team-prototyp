@@ -20,6 +20,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Eigene display-Regeln würden sonst das hidden-Attribut überstimmen. */
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--mai-bg); color: var(--mai-text); font-family: var(--mai-font-mono); font-size: 16px; line-height: 1.6; }
 a { color: var(--mai-cyan); }
 a:hover { color: var(--mai-text); }
