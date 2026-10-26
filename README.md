@@ -4,10 +4,18 @@ Klickbarer Prototyp für [Issue #115](https://github.com/UM-AI-ORG/Mannheim-AI-W
 
 **Ansehen:** https://olegkostenk0.github.io/umai-team-prototyp/
 
-Drei Richtungen zur Abstimmung im Team:
+## Aktueller Entwurf: C „Orbit im Kosmos“
 
-- **A · Flip-Karten:** Ressort per Tab wählen, Karten drehen sich per Klick um (hinten Spaßbild und Fun Fact).
-- **B · Team-Stapel:** Jedes Ressort ist ein Kartenstapel, der sich per Klick auffächert. Die Karten lassen sich umdrehen.
-- **C · Orbit:** Ressorts als Knoten im Netz um das UM/AI-Logo. Person wählen, dann erscheint ihre Profilkarte zum Umdrehen.
+Das Team hat sich für Variante C entschieden. Der Entwurf auf der Startseite des Prototyps enthält:
 
-Namen sind Platzhalter. Nur ein Entwurf, kein Teil der Website.
+- Ressorts als Knoten in einem Netz um das UM/AI-Logo, im Hintergrund eine rotierende Punkte-Kugel wie im Kosmos der Startseite
+- automatischer Ressort-Wechsel (Standard 7,5 s) mit Fortschrittsbogen, Pause-Knopf, Pause bei Maus oder Fokus
+- Mitgliederliste und Karte zum Umdrehen (hinten Spaßbild und Fun Fact)
+- „Alle Mitglieder anzeigen“ mit Suche nach Name, Rolle oder Ressort
+- Head of je Ressort hervorgehoben (oben in der Leiste abschaltbar, offene Frage)
+
+Namen sind Platzhalter. Nur ein Entwurf, kein Teil der Website. Vanilla HTML, CSS und JS ohne Inline-Skripte, damit der Code später nah an die CSP der Website passt.
+
+Die ersten drei Varianten (A Flip-Karten, B Team-Stapel, C Orbit) liegen unter [varianten.html](https://olegkostenk0.github.io/umai-team-prototyp/varianten.html).
+
+Schriften: Syne und Space Mono, SIL Open Font License (siehe `assets/fonts/`).
