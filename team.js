@@ -39,7 +39,7 @@
   var REDUZIERT = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var HANDY = !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
 
-  var z = { team: 4, person: 1, gedreht: false, auto: !REDUZIERT, wechsel: 0, headOn: true, intervall: 7.5, alle: false, q: '' };
+  var z = { team: 4, person: 1, gedreht: false, auto: !REDUZIERT, wechsel: 0, intervall: 7.5, alle: false, q: '' };
   var maus = false, fokus = false, sichtbar = true, vergangen = 0, zuletzt = 0, t0 = 0, raf = 0;
   var schwarm = { start: -1, ziel: z.team };
 
@@ -63,7 +63,6 @@
     });
     return s;
   }
-  var KRONE = [['path', { d: 'M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z' }]];
   var PERSON = [['circle', { cx: '12', cy: '8', r: '4' }], ['path', { d: 'M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6' }]];
 
   /* ── Knoten ───────────────────────────────────────────────────────────── */
@@ -90,7 +89,7 @@
 
   /* ── Panel und Karte ──────────────────────────────────────────────────── */
   function eintrag(m, aktiv, onClick, mitTeam) {
-    var b = el('button', 'eintrag' + (aktiv ? ' ist-aktiv' : '') + (z.headOn && m.head ? ' ist-head' : ''));
+    var b = el('button', 'eintrag' + (aktiv ? ' ist-aktiv' : '') + '');
     b.type = 'button';
     if (!mitTeam) b.setAttribute('aria-pressed', aktiv ? 'true' : 'false');
     var av = el('span', 'avatar'); av.setAttribute('aria-hidden', 'true');
@@ -99,8 +98,7 @@
     var txt = el('span', 'eintrag__text');
     var name = el('span', 'eintrag__name');
     name.appendChild(el('span', null, m.name));
-    if (z.headOn && m.head) { var kr = el('span', 'krone'); kr.appendChild(svgIcon(KRONE, 15, 2)); name.appendChild(kr); }
-    txt.append(name, el('span', 'eintrag__rolle', mitTeam ? m.rolle + ' · ' + m.teamName : m.rolle));
+    txt.append(name, el('span', 'eintrag__rolle' + (m.head ? ' rolle--head' : ''), mitTeam ? m.rolle + ' · ' + m.teamName : m.rolle));
     b.append(av, txt);
     if (mitTeam) b.setAttribute('aria-label', m.name + ', ' + m.rolle + ', ' + m.teamName + ', im Netz anzeigen');
     b.addEventListener('click', onClick);
@@ -148,8 +146,7 @@
       $('karteFakt').textContent = p.fakt;
       $('karteFoto').hidden = !p.foto;
       $('karteSpass').hidden = !p.foto;
-      $('karteHead').hidden = !(z.headOn && p.head);
-      $('karteHeadText').textContent = p.rolle;
+      $('karteRolle').classList.toggle('rolle--head', p.head);
     }
 
     var pausiert = !z.auto;
@@ -191,7 +188,6 @@
   $('autoKnopf').addEventListener('click', function () { z.auto = !z.auto; vergangen = 0; render(); });
   $('alleKnopf').addEventListener('click', function () { z.alle = !z.alle; render(); if (z.alle) $('suche').focus(); });
   $('suche').addEventListener('input', function (e) { z.q = e.target.value; renderAlle(); });
-  $('optHead').addEventListener('change', function (e) { z.headOn = e.target.checked; render(); });
   $('optIntervall').addEventListener('change', function (e) { z.intervall = Number(e.target.value); vergangen = 0; render(); });
   // Maus und Tastatur-Fokus getrennt merken: Erst wenn beide weg sind, läuft der Wechsel weiter.
   var buehne = $('buehne');
@@ -303,15 +299,13 @@
         ctx.beginPath(); ctx.arc(nz.x, nz.y, 12 + pt * 38, 0, 6.283); ctx.stroke(); ctx.lineWidth = 1;
       }
     }
-    // Mitglieder kreisen als Trabanten, das Head of etwas größer in Cyan.
+    // Mitglieder kreisen als gleich große Trabanten.
     var an = knoten[akt], cnt = TEAMS[akt].n, orb = 0.07 * S;
-    var headDa = z.headOn && TEAMS[akt].id !== 'vorstand';
     ctx.strokeStyle = 'rgba(123,111,240,0.25)';
     ctx.beginPath(); ctx.arc(an.x, an.y, orb, 0, 6.283); ctx.stroke();
     for (var m = 0; m < cnt; m++) {
       var am = (REDUZIERT ? 0 : t * 0.6) + (m * 6.283) / cnt;
-      var istHead = headDa && m === 0;
-      glow(an.x + Math.cos(am) * orb, an.y + Math.sin(am) * orb, istHead ? 4.2 : 3, istHead ? COL[0] : COL[2], 0.95);
+      glow(an.x + Math.cos(am) * orb, an.y + Math.sin(am) * orb, 3, COL[2], 0.95);
     }
     // Fortschritt bis zum nächsten Wechsel.
     if (z.auto && !REDUZIERT) {

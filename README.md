@@ -12,7 +12,7 @@ Das Team hat sich für Variante C entschieden. Der Entwurf auf der Startseite de
 - automatischer Ressort-Wechsel (Standard 7,5 s) mit Fortschrittsbogen, Pause-Knopf, Pause bei Maus oder Fokus
 - Mitgliederliste und Karte zum Umdrehen (hinten Spaßbild und Fun Fact)
 - „Alle Mitglieder anzeigen“ mit Suche nach Name, Rolle oder Ressort
-- Head of je Ressort hervorgehoben (oben in der Leiste abschaltbar, offene Frage)
+- Heads stehen vorne und haben nur einen cyanfarbenen Rollentitel, wie in #115 verlangt
 
 Namen sind Platzhalter. Nur ein Entwurf, kein Teil der Website. Vanilla HTML, CSS und JS ohne Inline-Skripte, damit der Code später nah an die CSP der Website passt.
 

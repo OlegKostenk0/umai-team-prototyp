@@ -86,14 +86,12 @@ button { cursor: pointer; touch-action: manipulation; }
 .eintrag { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--mai-border); border-radius: 6px; background: var(--mai-surface-2); text-align: left; transition: border-color .2s, background-color .2s; }
 .eintrag:hover { border-color: var(--mai-text-sec); }
 .eintrag.ist-aktiv { border-color: var(--mai-cyan); background: var(--mai-cyan-08); }
-.eintrag.ist-head { border-color: rgba(59, 255, 212, 0.35); }
-.eintrag.ist-head.ist-aktiv { border-color: var(--mai-cyan); }
 .avatar { width: 36px; height: 36px; flex: none; position: relative; overflow: hidden; border-radius: 50%; background: var(--mai-bg); border: 1px solid var(--mai-violet); display: flex; align-items: center; justify-content: center; color: var(--mai-text-sec); }
 .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; }
 .eintrag__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .eintrag__name { display: flex; align-items: center; gap: 6px; font-family: var(--mai-font-display); font-weight: 800; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
 .eintrag__rolle { font-size: 12px; line-height: 1.4; color: var(--mai-text-sec); }
-.krone { display: inline-flex; color: var(--mai-cyan); flex: none; }
+.rolle--head { color: var(--mai-cyan); }
 
 /* Karte */
 .karten-spalte { flex: 0 1 220px; min-width: 180px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
@@ -111,7 +109,6 @@ button { cursor: pointer; touch-action: manipulation; }
 .karte__rolle { font-size: 12px; line-height: 1.4; color: var(--mai-text-sec); }
 .karte__label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mai-violet); }
 .karte__fakt { font-size: 13px; line-height: 1.4; }
-.head-badge { position: absolute; left: 8px; top: 8px; display: inline-flex; align-items: center; gap: 5px; background: var(--mai-bg); color: var(--mai-cyan); border: 1px solid var(--mai-cyan); font-size: 11px; line-height: 1.4; padding: 3px 8px; border-radius: 999px; }
 .hinweis { margin: 0; font-size: 12px; line-height: 1.4; color: var(--mai-text-sec); text-align: center; }
 
 /* Spaßbild: CSS-Effekt nur für den Prototyp, später echte Bilder aus dem Spaßbild-Skill */
