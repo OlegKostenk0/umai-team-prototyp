@@ -9,32 +9,53 @@
   'use strict';
 
   var TEAMS = [
-    { id: 'vorstand', name: 'Vorstand', desc: 'Gesamtverantwortung, Strategie und Vertretung nach außen', n: 3 },
-    { id: 'partnerships', name: 'Partnerships', desc: 'Unternehmen, Workshops und Sponsoring', n: 4 },
-    { id: 'finance', name: 'Finance', desc: 'Budget, Buchführung, Beiträge und Förderung', n: 2 },
-    { id: 'community-events', name: 'Community & Events', desc: 'Mitglieder, Onboarding und Veranstaltungen', n: 4 },
-    { id: 'ai', name: 'AI', desc: 'Use Cases, Technik und inhaltliche Qualität', n: 6 },
-    { id: 'relations', name: 'Relations', desc: 'Marketingkanäle, Social Media, Uni-Netzwerk', n: 3 }
+    { id: 'vorstand', name: 'Vorstand', desc: 'Gesamtverantwortung, Strategie und Vertretung nach außen', leute: [
+      ['Timo Löschner', 'Co-Founder', 'timo-loeschner'],
+      ['Don Didszuleit', 'Co-Founder', 'don-didszuleit']
+    ] },
+    { id: 'partnerships', name: 'Partnerships', desc: 'Unternehmen, Workshops und Sponsoring', leute: [
+      ['Elias Wiemer', 'Head of Partnerships', 'elias-wiemer']
+    ] },
+    { id: 'finance', name: 'Finance', desc: 'Budget, Buchführung, Beiträge und Förderung', leute: [
+      ['Nico Hinz', 'Head of Finance', 'nico-hinz']
+    ] },
+    { id: 'community-events', name: 'Community & Events', desc: 'Mitglieder, Onboarding und Veranstaltungen', leute: [
+      ['Juli Zier', 'Head of Community & Events', 'juli-zier']
+    ] },
+    { id: 'ai', name: 'AI', desc: 'Use Cases, Technik und inhaltliche Qualität', leute: [
+      ['Timo Löschner', 'Head of AI', 'timo-loeschner'],
+      ['Oleg Kostenko', 'AI Developer', 'oleg-kostenko', 'Lernt lieber mit Claude als in der Vorlesung.']
+    ] },
+    { id: 'relations', name: 'Relations', desc: 'Marketingkanäle, Social Media, Uni-Netzwerk', leute: [
+      ['Luisa Manderbach', 'Head of Relations', 'luisa-manderbach']
+    ] }
   ];
+  TEAMS.forEach(function (tm) { tm.n = tm.leute.length; });
 
-  // Beispieldaten: Jedes Ressort außer dem Vorstand hat ein Head of (erster Eintrag).
   function leute(i) {
-    var tm = TEAMS[i];
-    var out = [];
-    for (var k = 0; k < tm.n; k++) {
-      var head = tm.id !== 'vorstand' && k === 0;
-      var oleg = tm.id === 'ai' && k === 1;
-      out.push({
-        team: i, k: k, head: head, foto: oleg,
-        name: oleg ? 'Oleg' : '[Name ' + (k + 1) + ']',
-        rolle: head ? 'Head of ' + tm.name : oleg ? 'AI Developer' : '[Rolle]',
-        fakt: oleg ? 'Lernt lieber mit Claude als in der Vorlesung.' : '[Fun Fact, ein Satz]'
-      });
-    }
-    return out;
+    return TEAMS[i].leute.map(function (p, k) {
+      return {
+        team: i, k: k, head: p[1].indexOf('Head of') === 0, foto: 'assets/team/' + p[2] + '.jpg',
+        name: p[0], rolle: p[1], fakt: p[3] || '[Fun Fact, ein Satz]'
+      };
+    });
   }
+  // Wer in zwei Ressorts ist, zählt in der Gesamtliste einmal, mit beiden Rollen.
   var ALLE = [];
-  TEAMS.forEach(function (tm, i) { leute(i).forEach(function (m) { m.teamName = tm.name; m.slug = tm.id; ALLE.push(m); }); });
+  TEAMS.forEach(function (tm, i) {
+    leute(i).forEach(function (m) {
+      m.teamName = tm.name;
+      m.slug = tm.id;
+      var da = ALLE.filter(function (x) { return x.name === m.name; })[0];
+      if (da) {
+        da.rolle += ', ' + m.rolle;
+        da.teamName += ', ' + m.teamName;
+        da.head = da.head || m.head;
+      } else {
+        ALLE.push(m);
+      }
+    });
+  });
 
   var REDUZIERT = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var HANDY = !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -94,7 +115,7 @@
     if (!mitTeam) b.setAttribute('aria-pressed', aktiv ? 'true' : 'false');
     var av = el('span', 'avatar'); av.setAttribute('aria-hidden', 'true');
     av.appendChild(svgIcon(PERSON, 18, 1.4));
-    if (m.foto) { var img = el('img'); img.src = 'assets/oleg.jpg'; img.alt = ''; img.width = 36; img.height = 36; img.loading = 'lazy'; av.appendChild(img); }
+    if (m.foto) { var img = el('img'); img.src = m.foto; img.alt = ''; img.width = 36; img.height = 36; img.loading = 'lazy'; av.appendChild(img); }
     var txt = el('span', 'eintrag__text');
     var name = el('span', 'eintrag__name');
     name.appendChild(el('span', null, m.name));
@@ -144,7 +165,9 @@
       $('karteName').textContent = p.name;
       $('karteRolle').textContent = p.rolle;
       $('karteFakt').textContent = p.fakt;
+      $('karteFoto').src = p.foto;
       $('karteFoto').hidden = !p.foto;
+      document.querySelectorAll('#karteSpass img').forEach(function (b) { b.src = p.foto; });
       $('karteSpass').hidden = !p.foto;
       $('karteRolle').classList.toggle('rolle--head', p.head);
     }

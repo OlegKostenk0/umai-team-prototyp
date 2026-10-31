@@ -14,7 +14,7 @@ Das Team hat sich für Variante C entschieden. Der Entwurf auf der Startseite de
 - „Alle Mitglieder anzeigen“ mit Suche nach Name, Rolle oder Ressort
 - Heads stehen vorne und haben nur einen cyanfarbenen Rollentitel, wie in #115 verlangt
 
-Namen sind Platzhalter. Nur ein Entwurf, kein Teil der Website. Vanilla HTML, CSS und JS ohne Inline-Skripte, damit der Code später nah an die CSP der Website passt.
+Enthält bisher Vorstand, Heads und Oleg, weitere Mitglieder folgen. Nur ein Entwurf, kein Teil der Website. Vanilla HTML, CSS und JS ohne Inline-Skripte, damit der Code später nah an die CSP der Website passt.
 
 Die ersten drei Varianten (A Flip-Karten, B Team-Stapel, C Orbit) liegen unter [varianten.html](https://olegkostenk0.github.io/umai-team-prototyp/varianten.html).
 
