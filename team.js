@@ -219,26 +219,90 @@
   buehne.addEventListener('focusin', function () { fokus = true; });
   buehne.addEventListener('focusout', function (e) { if (!buehne.contains(e.relatedTarget)) fokus = false; });
 
-  /* ── Netz zeichnen ────────────────────────────────────────────────────── */
+  /* ── Kosmos zeichnen ──────────────────────────────────────────────────── */
+  // Wie cosmos.js auf der Startseite: Fibonacci-Kugel mit Schalen und Jitter,
+  // echte Perspektive, additive Leuchtpunkte (scharfer Kern, knapper Halo) und
+  // Linien zwischen nahen Nachbarn. Ein Teil der Punkte bildet den Stern des
+  // aktiven Ressorts (heller Kern, vier Strahlen) und fliegt beim Wechsel als
+  // Schwarm zum nächsten Ressort.
   var cv = $('netz');
   var ctx = cv.getContext('2d');
-  var N = HANDY ? 80 : 150;
-  var gold = Math.PI * (3 - Math.sqrt(5));
-  var pts = [];
-  for (var i = 0; i < N; i++) {
-    var y = 1 - (2 * (i + 0.5)) / N;
-    var rr = Math.sqrt(1 - y * y);
-    var s = Math.sin(i * 12.9898) * 43758.5453;
-    pts.push({ x: Math.cos(gold * i) * rr, y: y, z: Math.sin(gold * i) * rr, k: 0.75 + 0.35 * (s - Math.floor(s)), c: i % 10 < 7 ? 0 : (i % 10 < 9 ? 2 : 1) });
-  }
-  var nb = pts.map(function (p, a) {
-    var d = pts.map(function (q, b) { return { b: b, d: a === b ? 9 : (p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y) + (p.z - q.z) * (p.z - q.z) }; });
-    d.sort(function (u, v) { return u.d - v.d; });
-    return [d[0].b, d[1].b];
-  });
-  var fluss = [];
-  for (var q = 0; q < 18; q++) fluss.push({ k: q % 6, u: (q * 0.379) % 1, v: 0.10 + ((q * 0.613) % 1) * 0.08, dir: q % 2 ? 1 : -1 });
+  var COUNT = HANDY ? 600 : 1400;
+  var STERN = HANDY ? 140 : 260;
+  var CAM = 8.6, KUGEL = 2.55;
   var COL = ['59,255,212', '255,107,53', '123,111,240'];
+  var RGB = [[59, 255, 212], [255, 107, 53], [123, 111, 240]];
+  var gold = Math.PI * (3 - Math.sqrt(5));
+  var netzP = new Float32Array(COUNT * 3), startP = new Float32Array(COUNT * 3);
+  var versatz = new Float32Array(COUNT), saat = new Float32Array(COUNT), basis = new Float32Array(COUNT);
+  var sternForm = new Float32Array(STERN * 2), sternIst = new Float32Array(STERN * 3);
+  var sternBereit = false;
+  for (var i = 0; i < COUNT; i++) {
+    var inc = Math.acos(1 - 2 * (i / COUNT)), az = gold * i;
+    var r = KUGEL * (0.55 + 0.45 * Math.sqrt(Math.random()));
+    netzP[i * 3] = r * Math.sin(inc) * Math.cos(az) + (Math.random() - 0.5) * 0.5;
+    netzP[i * 3 + 1] = r * Math.cos(inc) + (Math.random() - 0.5) * 0.5;
+    netzP[i * 3 + 2] = r * Math.sin(inc) * Math.sin(az) + (Math.random() - 0.5) * 0.5;
+    // Einflug: Start vor der Kugel, seitlich gestreut, Richtung Betrachter.
+    var ea = Math.random() * 6.283, er = 1.5 + Math.random() * 4.5;
+    startP[i * 3] = netzP[i * 3] + Math.cos(ea) * er;
+    startP[i * 3 + 1] = netzP[i * 3 + 1] + Math.sin(ea) * er * 0.7;
+    startP[i * 3 + 2] = 3 + Math.random() * 4.5;
+    versatz[i] = Math.random();
+    saat[i] = Math.random() * 6.283;
+    basis[i] = 1.3 + Math.random() * 2.0;
+  }
+  // Sternform wie in cosmos.js: 8 % heller Kern, kompakter Kern, vier schmale Strahlen.
+  for (var j = 0; j < STERN; j++) {
+    var wurf = Math.random(), sx, sy;
+    if (wurf < 0.08) {
+      sx = (Math.random() - 0.5) * 0.06; sy = (Math.random() - 0.5) * 0.06; basis[j] = 5.2;
+    } else if (wurf < 0.52) {
+      var cr = Math.pow(Math.random(), 2.6) * 0.3, a1 = Math.random() * 6.283;
+      sx = cr * Math.cos(a1); sy = cr * Math.sin(a1);
+    } else {
+      var strahl = Math.floor(Math.random() * 4);
+      var lang = (strahl < 2 ? 1.7 : 1.05) * (0.92 + Math.random() * 0.16);
+      var dd = [[0, 1], [0, -1], [1, 0], [-1, 0]][strahl];
+      var weit = Math.pow(Math.random(), 2.1) * lang, wob = (1 - weit / lang) * 0.09;
+      sx = dd[0] * weit + (Math.random() - 0.5) * wob; sy = dd[1] * weit + (Math.random() - 0.5) * wob;
+    }
+    sternForm[j * 2] = sx * 0.62; sternForm[j * 2 + 1] = sy * 0.62;
+  }
+  var paare = [];
+  var maxPaare = HANDY ? 300 : 720;
+  for (var versuch = 0; paare.length < maxPaare && versuch < COUNT * 30; versuch++) {
+    var pa = STERN + ((Math.random() * (COUNT - STERN)) | 0), pb = STERN + ((Math.random() * (COUNT - STERN)) | 0);
+    if (pa === pb) continue;
+    var dx = netzP[pa * 3] - netzP[pb * 3], dy = netzP[pa * 3 + 1] - netzP[pb * 3 + 1], dz = netzP[pa * 3 + 2] - netzP[pb * 3 + 2];
+    if (dx * dx + dy * dy + dz * dz < 1.05) paare.push([pa, pb]);
+  }
+  // Leuchtpunkt einmal vorzeichnen, wie der Shader in cosmos.js: scharfer Kern plus knapper Halo.
+  function sprite(rgb) {
+    var c = document.createElement('canvas'); c.width = c.height = 64;
+    var g = c.getContext('2d'), bild = g.createImageData(64, 64);
+    for (var py = 0; py < 64; py++) for (var px = 0; px < 64; px++) {
+      var d = Math.hypot(px - 31.5, py - 31.5) / 32;
+      var kern = d >= 0.42 ? 0 : d <= 0.14 ? 1 : 1 - (d - 0.14) / 0.28;
+      kern = kern * kern * (3 - 2 * kern);
+      var a = Math.min(1, kern + Math.pow(Math.max(0, 1 - d), 3.5) * 0.3), o = (py * 64 + px) * 4;
+      bild.data[o] = rgb[0]; bild.data[o + 1] = rgb[1]; bild.data[o + 2] = rgb[2]; bild.data[o + 3] = Math.round(a * 255);
+    }
+    g.putImageData(bild, 0, 0);
+    return c;
+  }
+  var SPRITES = RGB.map(sprite);
+  var neig = { x: 0, y: 0, zx: 0, zy: 0 };
+  var orbitEl = cv.parentElement;
+  if (!REDUZIERT) {
+    // Wie auf der Startseite neigt sich das Netz leicht zur Maus.
+    orbitEl.addEventListener('pointermove', function (e) {
+      var b = orbitEl.getBoundingClientRect();
+      neig.zx = ((e.clientX - b.left) / b.width - 0.5) * 0.5;
+      neig.zy = ((e.clientY - b.top) / b.height - 0.5) * 0.35;
+    });
+    orbitEl.addEventListener('pointerleave', function () { neig.zx = 0; neig.zy = 0; });
+  }
   var groesse = { w: 0, h: 0, dpr: 1 };
 
   function messen() {
@@ -257,6 +321,7 @@
     ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
   }
   var ease = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x); };
+  var bildX = new Float32Array(COUNT), bildY = new Float32Array(COUNT), bildOk = new Uint8Array(COUNT);
 
   function zeichnen(jetzt) {
     var w = groesse.w, h = groesse.h;
@@ -264,81 +329,113 @@
     ctx.setTransform(groesse.dpr, 0, 0, groesse.dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     var S = Math.min(w, h), cx = w / 2, cy = h / 2, RR = 0.38 * S;
+    var F = 0.34 * S * CAM / KUGEL, skala = S / 1000;
     var t = (jetzt - t0) / 1000;
-    var einflug = REDUZIERT ? 1 : ease(t / 1.8);
-    var rot = REDUZIERT ? 0.6 : t * 0.12, tilt = 0.35, Rs = 0.30 * S * (1 + 2.2 * (1 - einflug));
-    var proj = pts.map(function (p) {
-      var x1 = p.x * Math.cos(rot) - p.z * Math.sin(rot);
-      var z1 = p.x * Math.sin(rot) + p.z * Math.cos(rot);
-      var y2 = p.y * Math.cos(tilt) - z1 * Math.sin(tilt);
-      var z2 = p.y * Math.sin(tilt) + z1 * Math.cos(tilt);
-      return { x: cx + x1 * Rs * p.k, y: cy + y2 * Rs * p.k, d: (z2 + 1) / 2, c: p.c };
-    });
-    ctx.lineWidth = 1;
-    proj.forEach(function (a, ai) {
-      nb[ai].forEach(function (bi) {
-        var b = proj[bi];
-        ctx.strokeStyle = 'rgba(59,255,212,' + (0.07 * einflug * (a.d + b.d) / 2) + ')';
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      });
-    });
-    proj.forEach(function (p) { glow(p.x, p.y, 0.8 + 1.2 * p.d, COL[p.c], einflug * (0.15 + 0.55 * p.d)); });
-
+    var dt = REDUZIERT ? 1 : Math.min(0.05, (jetzt - (zeichnen.letzt || jetzt)) / 1000);
+    zeichnen.letzt = jetzt;
+    var einflug = REDUZIERT ? 1 : Math.max(0, Math.min(1, (jetzt - t0) / 1800));
+    neig.x += (neig.zx - neig.x) * 0.06; neig.y += (neig.zy - neig.y) * 0.06;
+    var rot = (REDUZIERT ? 0.6 : t * 0.12) + neig.x, kipp = 0.25 + neig.y;
+    var cr = Math.cos(rot), sr = Math.sin(rot), ck = Math.cos(kipp), sk = Math.sin(kipp);
     var knoten = TEAMS.map(function (_, k) {
       var a = -Math.PI / 2 + (k * 2 * Math.PI) / TEAMS.length;
       return { x: cx + RR * Math.cos(a), y: cy + RR * Math.sin(a) };
     });
     var akt = z.team;
-    ctx.setLineDash([3, 6]); ctx.strokeStyle = 'rgba(45,47,58,0.9)';
+
+    ctx.globalCompositeOperation = 'lighter';
+    // Netz: Punkte drehen sich, beim Einflug kommen sie von vorne ins Bild.
+    for (var i = STERN; i < COUNT; i++) {
+      var o = i * 3, x = netzP[o], y = netzP[o + 1], zz = netzP[o + 2];
+      var X = x * cr - zz * sr, Z1 = x * sr + zz * cr;
+      var Y = y * ck - Z1 * sk, Z = y * sk + Z1 * ck;
+      var ein = einflug >= 1 ? 1 : ease((einflug - versatz[i] * 0.35) / 0.45);
+      if (ein < 1) {
+        X = startP[o] + (X - startP[o]) * ein;
+        Y = startP[o + 1] + (Y - startP[o + 1]) * ein;
+        Z = startP[o + 2] + (Z - startP[o + 2]) * ein;
+      }
+      var abst = CAM - Z;
+      if (abst < 0.4) { bildOk[i] = 0; continue; }
+      var k = F / abst;
+      var px = cx + X * k, py = cy + Y * k;
+      bildX[i] = px; bildY[i] = py; bildOk[i] = 1;
+      var gr = Math.max(2.5, Math.min(64, basis[i] * 52 / abst) * skala * 1.6);
+      ctx.globalAlpha = Math.min(1, ein * 2.5) * (0.35 + 0.65 * Math.max(0, Math.min(1, (Z + KUGEL) / (2 * KUGEL))));
+      ctx.drawImage(SPRITES[0], px - gr / 2, py - gr / 2, gr, gr);
+    }
+    // Linien erst, wenn fast alle Punkte gelandet sind, wie auf der Startseite.
+    var linien = einflug >= 1 ? 1 : ease((einflug - 0.82) / 0.18);
+    if (linien > 0.01) {
+      ctx.globalAlpha = 0.28 * linien;
+      ctx.strokeStyle = 'rgb(59,255,212)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      for (var p2 = 0; p2 < paare.length; p2++) {
+        var a2 = paare[p2][0], b2 = paare[p2][1];
+        if (!bildOk[a2] || !bildOk[b2]) continue;
+        ctx.moveTo(bildX[a2], bildY[a2]); ctx.lineTo(bildX[b2], bildY[b2]);
+      }
+      ctx.stroke();
+    }
+    // Stern des aktiven Ressorts: Seine Punkte lösen sich aus dem Netz und fliegen gestaffelt zum Ziel.
+    var ziel = knoten[akt], zx = (ziel.x - cx) / (F / CAM), zy = (ziel.y - cy) / (F / CAM);
+    var farbe = akt % 3;
+    if (!sternBereit) {
+      for (var s0 = 0; s0 < STERN; s0++) {
+        sternIst[s0 * 3] = startP[s0 * 3]; sternIst[s0 * 3 + 1] = startP[s0 * 3 + 1]; sternIst[s0 * 3 + 2] = startP[s0 * 3 + 2];
+      }
+      sternBereit = true;
+    }
+    var los = REDUZIERT ? 1 : ease((einflug - 0.5) / 0.5);
+    for (var s = 0; s < STERN; s++) {
+      var so = s * 3;
+      if (REDUZIERT) {
+        sternIst[so] = zx + sternForm[s * 2]; sternIst[so + 1] = zy + sternForm[s * 2 + 1]; sternIst[so + 2] = 0;
+      } else if (los > 0) {
+        var tempo = 1 - Math.exp(-dt * (1.6 + versatz[s] * 2.6) * los);
+        sternIst[so] += (zx + sternForm[s * 2] - sternIst[so]) * tempo;
+        sternIst[so + 1] += (zy + sternForm[s * 2 + 1] - sternIst[so + 1]) * tempo;
+        sternIst[so + 2] += (0 - sternIst[so + 2]) * tempo;
+      }
+      var abst2 = CAM - sternIst[so + 2];
+      if (abst2 < 0.4) continue;
+      var k2 = F / abst2;
+      var funkeln = REDUZIERT ? 1 : 1 + 0.18 * Math.sin(t * 2.6 + saat[s]);
+      var gr2 = Math.max(2.5, Math.min(64, basis[s] * 52 / abst2) * skala * 2 * funkeln);
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(SPRITES[farbe], cx + sternIst[so] * k2 - gr2 / 2, cy + sternIst[so + 1] * k2 - gr2 / 2, gr2, gr2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Kreisbahn der Ressorts und eine dezente Speiche zum aktiven.
+    ctx.setLineDash([3, 6]); ctx.strokeStyle = 'rgba(45,47,58,0.9)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(cx, cy, RR, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
-    knoten.forEach(function (n, k) {
-      ctx.strokeStyle = k === akt ? 'rgba(59,255,212,0.85)' : 'rgba(136,146,164,0.22)';
-      ctx.lineWidth = k === akt ? 2 : 1;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(n.x, n.y); ctx.stroke();
-    });
-    ctx.lineWidth = 1;
-    if (!REDUZIERT) {
-      var dt = Math.min(0.05, (jetzt - (zeichnen.letzt || jetzt)) / 1000);
-      zeichnen.letzt = jetzt;
-      fluss.forEach(function (f) {
-        f.u = (f.u + f.v * dt * (f.k === akt ? 2 : 1)) % 1;
-        var s2 = f.dir > 0 ? f.u : 1 - f.u, n = knoten[f.k];
-        glow(cx + (n.x - cx) * s2, cy + (n.y - cy) * s2, f.k === akt ? 2 : 1.4, f.dir > 0 ? COL[0] : COL[2], f.k === akt ? 0.95 : 0.45);
-      });
-    }
-    // Wechsel: Schwarm vom Zentrum zum neuen Ressort, dort ein Puls.
+    ctx.strokeStyle = 'rgba(59,255,212,0.35)';
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ziel.x, ziel.y); ctx.stroke();
+    // Puls, sobald der Schwarm am neuen Ressort ankommt.
     var bt = schwarm.start < 0 || REDUZIERT ? 9 : (jetzt - schwarm.start) / 1000;
-    if (bt < 1.4) {
-      var nz = knoten[schwarm.ziel];
-      for (var k = 0; k < 14; k++) {
-        var sk = ease((bt - k * 0.03) / 0.7);
-        if (sk <= 0 || sk >= 1) continue;
-        var off = Math.sin(k * 2.1) * 10 * Math.sin(sk * Math.PI);
-        glow(cx + (nz.x - cx) * sk - ((nz.y - cy) / RR) * off, cy + (nz.y - cy) * sk + ((nz.x - cx) / RR) * off, 2, COL[k % 3], 1 - sk * 0.4);
-      }
-      var pt = (bt - 0.7) / 0.7;
-      if (pt > 0 && pt < 1) {
-        ctx.strokeStyle = 'rgba(59,255,212,' + (1 - pt) + ')'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(nz.x, nz.y, 12 + pt * 38, 0, 6.283); ctx.stroke(); ctx.lineWidth = 1;
-      }
+    var puls = (bt - 0.6) / 0.8;
+    if (puls > 0 && puls < 1) {
+      ctx.strokeStyle = 'rgba(' + COL[farbe] + ',' + (1 - puls) + ')'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ziel.x, ziel.y, 14 + puls * 40, 0, 6.283); ctx.stroke(); ctx.lineWidth = 1;
     }
-    // Mitglieder kreisen als gleich große Trabanten.
-    var an = knoten[akt], cnt = TEAMS[akt].n, orb = 0.07 * S;
-    ctx.strokeStyle = 'rgba(123,111,240,0.25)';
-    ctx.beginPath(); ctx.arc(an.x, an.y, orb, 0, 6.283); ctx.stroke();
+    // Mitglieder kreisen als gleich große Trabanten um den Stern.
+    var cnt = TEAMS[akt].n, orb = 0.085 * S;
     for (var m = 0; m < cnt; m++) {
-      var am = (REDUZIERT ? 0 : t * 0.6) + (m * 6.283) / cnt;
-      glow(an.x + Math.cos(am) * orb, an.y + Math.sin(am) * orb, 3, COL[2], 0.95);
+      var am = (REDUZIERT ? 0 : t * 0.5) + (m * 6.283) / cnt;
+      glow(ziel.x + Math.cos(am) * orb, ziel.y + Math.sin(am) * orb, 2.6, COL[2], 0.9);
     }
     // Fortschritt bis zum nächsten Wechsel.
     if (z.auto && !REDUZIERT) {
-      var pr = Math.min(1, vergangen / z.intervall), rb = Math.min(22, orb * 0.6), ende = -Math.PI / 2 + pr * 6.283;
+      var pr = Math.min(1, vergangen / z.intervall), rb = orb + 9, ende = -Math.PI / 2 + pr * 6.283;
       var halt = maus || fokus;
-      ctx.strokeStyle = 'rgba(59,255,212,0.15)'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(an.x, an.y, rb, 0, 6.283); ctx.stroke();
+      ctx.strokeStyle = 'rgba(59,255,212,0.12)'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(ziel.x, ziel.y, rb, 0, 6.283); ctx.stroke();
       ctx.strokeStyle = halt ? 'rgba(136,146,164,0.9)' : 'rgba(59,255,212,1)'; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(an.x, an.y, rb, -Math.PI / 2, ende); ctx.stroke(); ctx.lineCap = 'butt';
-      glow(an.x + Math.cos(ende) * rb, an.y + Math.sin(ende) * rb, 2.5, halt ? '136,146,164' : COL[0], 1);
+      ctx.beginPath(); ctx.arc(ziel.x, ziel.y, rb, -Math.PI / 2, ende); ctx.stroke(); ctx.lineCap = 'butt';
+      glow(ziel.x + Math.cos(ende) * rb, ziel.y + Math.sin(ende) * rb, 2.2, halt ? '136,146,164' : COL[0], 1);
       ctx.lineWidth = 1;
     }
   }
