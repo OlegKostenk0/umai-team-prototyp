@@ -222,19 +222,30 @@
   /* ── Netz zeichnen ────────────────────────────────────────────────────── */
   var cv = $('netz');
   var ctx = cv.getContext('2d');
-  var N = HANDY ? 80 : 150;
+  // Hintergrund-Netz wie auf der Startseite, nur dezenter: viele Punkte in
+  // unregelmäßigen Schalen, leicht gestaucht und mit Mittelfurche und Windungen,
+  // damit es eher wie ein Gehirn als wie eine glatte Kugel wirkt.
+  var N = HANDY ? 260 : 520;
   var gold = Math.PI * (3 - Math.sqrt(5));
   var pts = [];
   for (var i = 0; i < N; i++) {
     var y = 1 - (2 * (i + 0.5)) / N;
     var rr = Math.sqrt(1 - y * y);
-    var s = Math.sin(i * 12.9898) * 43758.5453;
-    pts.push({ x: Math.cos(gold * i) * rr, y: y, z: Math.sin(gold * i) * rr, k: 0.75 + 0.35 * (s - Math.floor(s)), c: i % 10 < 7 ? 0 : (i % 10 < 9 ? 2 : 1) });
+    var th = gold * i, ph = Math.acos(y);
+    var x0 = Math.cos(th) * rr, z0 = Math.sin(th) * rr;
+    var windung = 1 + 0.07 * Math.sin(5 * th) * Math.sin(4 * ph);
+    var schale = (0.62 + 0.38 * Math.sqrt(Math.random())) * windung;
+    var gx = x0 * schale * 1.16, gy = y * schale * 0.86, gz = z0 * schale;
+    gx += (gx < 0 ? -1 : 1) * 0.07;
+    pts.push({
+      x: gx + (Math.random() - 0.5) * 0.06, y: gy + (Math.random() - 0.5) * 0.06, z: gz + (Math.random() - 0.5) * 0.06,
+      k: 1, c: i % 10 < 8 ? 0 : (i % 10 < 9 ? 2 : 1)
+    });
   }
   var nb = pts.map(function (p, a) {
     var d = pts.map(function (q, b) { return { b: b, d: a === b ? 9 : (p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y) + (p.z - q.z) * (p.z - q.z) }; });
     d.sort(function (u, v) { return u.d - v.d; });
-    return [d[0].b, d[1].b];
+    return [d[0].b, d[1].b, d[2].b];
   });
   var fluss = [];
   for (var q = 0; q < 18; q++) fluss.push({ k: q % 6, u: (q * 0.379) % 1, v: 0.10 + ((q * 0.613) % 1) * 0.08, dir: q % 2 ? 1 : -1 });
@@ -278,11 +289,11 @@
     proj.forEach(function (a, ai) {
       nb[ai].forEach(function (bi) {
         var b = proj[bi];
-        ctx.strokeStyle = 'rgba(59,255,212,' + (0.07 * einflug * (a.d + b.d) / 2) + ')';
+        ctx.strokeStyle = 'rgba(59,255,212,' + (0.055 * einflug * (a.d + b.d) / 2) + ')';
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       });
     });
-    proj.forEach(function (p) { glow(p.x, p.y, 0.8 + 1.2 * p.d, COL[p.c], einflug * (0.15 + 0.55 * p.d)); });
+    proj.forEach(function (p) { glow(p.x, p.y, 0.5 + 0.9 * p.d, COL[p.c], einflug * (0.08 + 0.38 * p.d)); });
 
     var knoten = TEAMS.map(function (_, k) {
       var a = -Math.PI / 2 + (k * 2 * Math.PI) / TEAMS.length;
