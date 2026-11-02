@@ -410,7 +410,8 @@
       var k2 = F / abst2;
       var funkeln = REDUZIERT ? 1 : 1 + 0.18 * Math.sin(t * 2.6 + saat[s]);
       var gr2 = Math.max(2.5, Math.min(26, basis[s] * 52 / abst2 * skala * 1.8 * funkeln));
-      ctx.globalAlpha = 0.95 * Math.max(0.25, los);
+      if (los <= 0) continue;
+      ctx.globalAlpha = 0.95 * los;
       ctx.drawImage(PUNKT, cx + sternIst[so] * k2 - gr2 / 2, cy + sternIst[so + 1] * k2 - gr2 / 2, gr2, gr2);
     }
     ctx.globalAlpha = 1;
