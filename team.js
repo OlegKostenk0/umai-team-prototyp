@@ -57,7 +57,7 @@
     });
   });
 
-  var REDUZIERT = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var REDUZIERT = /[?&]statisch/.test(location.search) || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var HANDY = !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
 
   var z = { team: 4, person: 1, gedreht: false, auto: !REDUZIERT, wechsel: 0, intervall: 7.5, alle: false, q: '' };
@@ -135,6 +135,7 @@
     });
     $('teamSlug').textContent = tm.id + '/';
     $('teamName').textContent = tm.name;
+    $('hubName').textContent = tm.name;
     $('teamText').textContent = tm.desc;
 
     var personen = leute(z.team);
@@ -221,24 +222,28 @@
 
   /* ── Kosmos zeichnen ──────────────────────────────────────────────────── */
   // Wie cosmos.js auf der Startseite: Fibonacci-Kugel mit Schalen und Jitter,
-  // echte Perspektive, additive Leuchtpunkte (scharfer Kern, knapper Halo) und
-  // Linien zwischen nahen Nachbarn. Ein Teil der Punkte bildet den Stern des
-  // aktiven Ressorts (heller Kern, vier Strahlen) und fliegt beim Wechsel als
-  // Schwarm zum nächsten Ressort.
+  // echte Perspektive, additive Leuchtpunkte und Linien zwischen nahen
+  // Nachbarn. Aus dem Netz entsteht in der Mitte ein Stern (heller Kern, vier
+  // Strahlen), wie die Sterne der Startseite. Beim Wechsel fliegen seine
+  // Punkte zum neuen Ressort und sammeln sich von dort wieder im Zentrum.
   var cv = $('netz');
   var ctx = cv.getContext('2d');
-  var COUNT = HANDY ? 600 : 1400;
-  var STERN = HANDY ? 140 : 260;
+  var COUNT = HANDY ? 350 : 650;
+  var STERN = HANDY ? 110 : 190;
   var CAM = 8.6, KUGEL = 2.55;
-  var COL = ['59,255,212', '255,107,53', '123,111,240'];
-  var RGB = [[59, 255, 212], [255, 107, 53], [123, 111, 240]];
+  var CYAN = '59,255,212';
   var gold = Math.PI * (3 - Math.sqrt(5));
   var netzP = new Float32Array(COUNT * 3), startP = new Float32Array(COUNT * 3);
   var versatz = new Float32Array(COUNT), saat = new Float32Array(COUNT), basis = new Float32Array(COUNT);
-  var sternForm = new Float32Array(STERN * 2), sternIst = new Float32Array(STERN * 3);
+  var sternForm = new Float32Array(STERN * 2), sternIst = new Float32Array(STERN * 3), streu = new Float32Array(STERN * 2);
   var sternBereit = false;
+  // Gemischte Reihenfolge: Die ersten STERN Punkte (der Stern) liegen sonst als Kappe
+  // zusammen, und dem Netz fehlt unten ein ganzes Stück.
+  var reihe = [];
+  for (var n0 = 0; n0 < COUNT; n0++) reihe.push(n0);
+  for (var n1 = COUNT - 1; n1 > 0; n1--) { var n2 = (Math.random() * (n1 + 1)) | 0, tmp = reihe[n1]; reihe[n1] = reihe[n2]; reihe[n2] = tmp; }
   for (var i = 0; i < COUNT; i++) {
-    var inc = Math.acos(1 - 2 * (i / COUNT)), az = gold * i;
+    var inc = Math.acos(1 - 2 * (reihe[i] / COUNT)), az = gold * reihe[i];
     var r = KUGEL * (0.55 + 0.45 * Math.sqrt(Math.random()));
     netzP[i * 3] = r * Math.sin(inc) * Math.cos(az) + (Math.random() - 0.5) * 0.5;
     netzP[i * 3 + 1] = r * Math.cos(inc) + (Math.random() - 0.5) * 0.5;
@@ -258,8 +263,8 @@
     if (wurf < 0.08) {
       sx = (Math.random() - 0.5) * 0.06; sy = (Math.random() - 0.5) * 0.06; basis[j] = 5.2;
     } else if (wurf < 0.52) {
-      var cr = Math.pow(Math.random(), 2.6) * 0.3, a1 = Math.random() * 6.283;
-      sx = cr * Math.cos(a1); sy = cr * Math.sin(a1);
+      var cr0 = Math.pow(Math.random(), 2.6) * 0.3, a1 = Math.random() * 6.283;
+      sx = cr0 * Math.cos(a1); sy = cr0 * Math.sin(a1);
     } else {
       var strahl = Math.floor(Math.random() * 4);
       var lang = (strahl < 2 ? 1.7 : 1.05) * (0.92 + Math.random() * 0.16);
@@ -267,15 +272,18 @@
       var weit = Math.pow(Math.random(), 2.1) * lang, wob = (1 - weit / lang) * 0.09;
       sx = dd[0] * weit + (Math.random() - 0.5) * wob; sy = dd[1] * weit + (Math.random() - 0.5) * wob;
     }
-    sternForm[j * 2] = sx * 0.62; sternForm[j * 2 + 1] = sy * 0.62;
+    sternForm[j * 2] = sx * 0.85; sternForm[j * 2 + 1] = sy * 0.85;
+    // Kleine Wolke, in der sich die Punkte am Ressort kurz sammeln.
+    var wa = Math.random() * 6.283, wr = Math.sqrt(Math.random()) * 0.28;
+    streu[j * 2] = Math.cos(wa) * wr; streu[j * 2 + 1] = Math.sin(wa) * wr;
   }
   var paare = [];
-  var maxPaare = HANDY ? 300 : 720;
-  for (var versuch = 0; paare.length < maxPaare && versuch < COUNT * 30; versuch++) {
+  var maxPaare = HANDY ? 320 : 720;
+  for (var versuch = 0; paare.length < maxPaare && versuch < COUNT * 60; versuch++) {
     var pa = STERN + ((Math.random() * (COUNT - STERN)) | 0), pb = STERN + ((Math.random() * (COUNT - STERN)) | 0);
     if (pa === pb) continue;
     var dx = netzP[pa * 3] - netzP[pb * 3], dy = netzP[pa * 3 + 1] - netzP[pb * 3 + 1], dz = netzP[pa * 3 + 2] - netzP[pb * 3 + 2];
-    if (dx * dx + dy * dy + dz * dz < 1.05) paare.push([pa, pb]);
+    if (dx * dx + dy * dy + dz * dz < 1.4) paare.push([pa, pb]);
   }
   // Leuchtpunkt einmal vorzeichnen, wie der Shader in cosmos.js: scharfer Kern plus knapper Halo.
   function sprite(rgb) {
@@ -291,7 +299,7 @@
     g.putImageData(bild, 0, 0);
     return c;
   }
-  var SPRITES = RGB.map(sprite);
+  var PUNKT = sprite([59, 255, 212]);
   var neig = { x: 0, y: 0, zx: 0, zy: 0 };
   var orbitEl = cv.parentElement;
   if (!REDUZIERT) {
@@ -304,6 +312,8 @@
     orbitEl.addEventListener('pointerleave', function () { neig.zx = 0; neig.zy = 0; });
   }
   var groesse = { w: 0, h: 0, dpr: 1 };
+  // Vor messen(), denn bei reduzierter Bewegung zeichnet messen() sofort.
+  var bildX = new Float32Array(COUNT), bildY = new Float32Array(COUNT), bildOk = new Uint8Array(COUNT);
 
   function messen() {
     groesse.dpr = Math.min(HANDY ? 1.5 : 2, window.devicePixelRatio || 1);
@@ -314,14 +324,7 @@
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(messen).observe(cv); else window.addEventListener('resize', messen);
   messen();
 
-  function glow(x, y, r, c, a) {
-    ctx.fillStyle = 'rgba(' + c + ',' + (a * 0.18) + ')';
-    ctx.beginPath(); ctx.arc(x, y, r * 2.6, 0, 6.283); ctx.fill();
-    ctx.fillStyle = 'rgba(' + c + ',' + a + ')';
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
-  }
   var ease = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x); };
-  var bildX = new Float32Array(COUNT), bildY = new Float32Array(COUNT), bildOk = new Uint8Array(COUNT);
 
   function zeichnen(jetzt) {
     var w = groesse.w, h = groesse.h;
@@ -337,14 +340,15 @@
     neig.x += (neig.zx - neig.x) * 0.06; neig.y += (neig.zy - neig.y) * 0.06;
     var rot = (REDUZIERT ? 0.6 : t * 0.12) + neig.x, kipp = 0.25 + neig.y;
     var cr = Math.cos(rot), sr = Math.sin(rot), ck = Math.cos(kipp), sk = Math.sin(kipp);
-    var knoten = TEAMS.map(function (_, k) {
-      var a = -Math.PI / 2 + (k * 2 * Math.PI) / TEAMS.length;
-      return { x: cx + RR * Math.cos(a), y: cy + RR * Math.sin(a) };
-    });
     var akt = z.team;
+    var ka = -Math.PI / 2 + (akt * 2 * Math.PI) / TEAMS.length;
+    var knoten = { x: cx + RR * Math.cos(ka), y: cy + RR * Math.sin(ka) };
+    // Seit dem letzten Wechsel: erst zum Ressort, dann zurück in die Mitte.
+    var seit = schwarm.start < 0 || REDUZIERT ? 9 : (jetzt - schwarm.start) / 1000;
+    var amRessort = seit < 0.7;
 
     ctx.globalCompositeOperation = 'lighter';
-    // Netz: Punkte drehen sich, beim Einflug kommen sie von vorne ins Bild.
+    // Netz: Punkte drehen sich, beim Einflug kommen sie einheitlich cyan von vorne ins Bild.
     for (var i = STERN; i < COUNT; i++) {
       var o = i * 3, x = netzP[o], y = netzP[o + 1], zz = netzP[o + 2];
       var X = x * cr - zz * sr, Z1 = x * sr + zz * cr;
@@ -360,16 +364,16 @@
       var k = F / abst;
       var px = cx + X * k, py = cy + Y * k;
       bildX[i] = px; bildY[i] = py; bildOk[i] = 1;
-      var gr = Math.max(2.5, Math.min(64, basis[i] * 52 / abst) * skala * 1.6);
-      ctx.globalAlpha = Math.min(1, ein * 2.5) * (0.35 + 0.65 * Math.max(0, Math.min(1, (Z + KUGEL) / (2 * KUGEL))));
-      ctx.drawImage(SPRITES[0], px - gr / 2, py - gr / 2, gr, gr);
+      var gr = Math.max(2.5, Math.min(18, basis[i] * 52 / abst * skala * 1.2));
+      ctx.globalAlpha = Math.min(1, ein * 2.5) * (0.3 + 0.7 * Math.max(0, Math.min(1, (Z + KUGEL) / (2 * KUGEL))));
+      ctx.drawImage(PUNKT, px - gr / 2, py - gr / 2, gr, gr);
     }
-    // Linien erst, wenn fast alle Punkte gelandet sind, wie auf der Startseite.
+    // Linien tragen das Bild wie auf der Startseite, sie erscheinen erst nach dem Einflug.
     var linien = einflug >= 1 ? 1 : ease((einflug - 0.82) / 0.18);
     if (linien > 0.01) {
-      ctx.globalAlpha = 0.28 * linien;
-      ctx.strokeStyle = 'rgb(59,255,212)';
-      ctx.lineWidth = 0.6;
+      ctx.globalAlpha = 0.4 * linien;
+      ctx.strokeStyle = 'rgb(' + CYAN + ')';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       for (var p2 = 0; p2 < paare.length; p2++) {
         var a2 = paare[p2][0], b2 = paare[p2][1];
@@ -378,64 +382,54 @@
       }
       ctx.stroke();
     }
-    // Stern des aktiven Ressorts: Seine Punkte lösen sich aus dem Netz und fliegen gestaffelt zum Ziel.
-    var ziel = knoten[akt], zx = (ziel.x - cx) / (F / CAM), zy = (ziel.y - cy) / (F / CAM);
-    var farbe = akt % 3;
+    // Stern: Die Punkte starten im Netz, sammeln sich nach dem Einflug in der Mitte
+    // und fliegen bei jedem Wechsel zum Ressort und von dort zurück.
+    var welt = F / CAM;
+    var kx = (knoten.x - cx) / welt, ky = (knoten.y - cy) / welt;
     if (!sternBereit) {
       for (var s0 = 0; s0 < STERN; s0++) {
-        sternIst[s0 * 3] = startP[s0 * 3]; sternIst[s0 * 3 + 1] = startP[s0 * 3 + 1]; sternIst[s0 * 3 + 2] = startP[s0 * 3 + 2];
+        sternIst[s0 * 3] = netzP[s0 * 3]; sternIst[s0 * 3 + 1] = netzP[s0 * 3 + 1]; sternIst[s0 * 3 + 2] = netzP[s0 * 3 + 2];
       }
       sternBereit = true;
     }
-    var los = REDUZIERT ? 1 : ease((einflug - 0.5) / 0.5);
+    var los = REDUZIERT ? 1 : ease((einflug - 0.55) / 0.45);
     for (var s = 0; s < STERN; s++) {
       var so = s * 3;
+      var zielX = amRessort ? kx + streu[s * 2] : sternForm[s * 2];
+      var zielY = amRessort ? ky + streu[s * 2 + 1] : sternForm[s * 2 + 1];
       if (REDUZIERT) {
-        sternIst[so] = zx + sternForm[s * 2]; sternIst[so + 1] = zy + sternForm[s * 2 + 1]; sternIst[so + 2] = 0;
+        sternIst[so] = zielX; sternIst[so + 1] = zielY; sternIst[so + 2] = 0;
       } else if (los > 0) {
-        var tempo = 1 - Math.exp(-dt * (1.6 + versatz[s] * 2.6) * los);
-        sternIst[so] += (zx + sternForm[s * 2] - sternIst[so]) * tempo;
-        sternIst[so + 1] += (zy + sternForm[s * 2 + 1] - sternIst[so + 1]) * tempo;
+        var tempo = 1 - Math.exp(-dt * (amRessort ? 5 : 2.2 + versatz[s] * 2.4) * los);
+        sternIst[so] += (zielX - sternIst[so]) * tempo;
+        sternIst[so + 1] += (zielY - sternIst[so + 1]) * tempo;
         sternIst[so + 2] += (0 - sternIst[so + 2]) * tempo;
       }
       var abst2 = CAM - sternIst[so + 2];
       if (abst2 < 0.4) continue;
       var k2 = F / abst2;
       var funkeln = REDUZIERT ? 1 : 1 + 0.18 * Math.sin(t * 2.6 + saat[s]);
-      var gr2 = Math.max(2.5, Math.min(64, basis[s] * 52 / abst2) * skala * 2 * funkeln);
-      ctx.globalAlpha = 0.95;
-      ctx.drawImage(SPRITES[farbe], cx + sternIst[so] * k2 - gr2 / 2, cy + sternIst[so + 1] * k2 - gr2 / 2, gr2, gr2);
+      var gr2 = Math.max(2.5, Math.min(26, basis[s] * 52 / abst2 * skala * 1.8 * funkeln));
+      ctx.globalAlpha = 0.95 * Math.max(0.25, los);
+      ctx.drawImage(PUNKT, cx + sternIst[so] * k2 - gr2 / 2, cy + sternIst[so + 1] * k2 - gr2 / 2, gr2, gr2);
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
 
-    // Kreisbahn der Ressorts und eine dezente Speiche zum aktiven.
-    ctx.setLineDash([3, 6]); ctx.strokeStyle = 'rgba(45,47,58,0.9)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(cx, cy, RR, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
-    ctx.strokeStyle = 'rgba(59,255,212,0.35)';
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ziel.x, ziel.y); ctx.stroke();
-    // Puls, sobald der Schwarm am neuen Ressort ankommt.
-    var bt = schwarm.start < 0 || REDUZIERT ? 9 : (jetzt - schwarm.start) / 1000;
-    var puls = (bt - 0.6) / 0.8;
+    // Puls in der Mitte, sobald der Stern wieder steht.
+    var puls = (seit - 1.3) / 0.9;
     if (puls > 0 && puls < 1) {
-      ctx.strokeStyle = 'rgba(' + COL[farbe] + ',' + (1 - puls) + ')'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(ziel.x, ziel.y, 14 + puls * 40, 0, 6.283); ctx.stroke(); ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(' + CYAN + ',' + (0.8 * (1 - puls)) + ')'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, 0.05 * S + puls * 0.12 * S, 0, 6.283); ctx.stroke();
     }
-    // Mitglieder kreisen als gleich große Trabanten um den Stern.
-    var cnt = TEAMS[akt].n, orb = 0.085 * S;
-    for (var m = 0; m < cnt; m++) {
-      var am = (REDUZIERT ? 0 : t * 0.5) + (m * 6.283) / cnt;
-      glow(ziel.x + Math.cos(am) * orb, ziel.y + Math.sin(am) * orb, 2.6, COL[2], 0.9);
-    }
-    // Fortschritt bis zum nächsten Wechsel.
+    // Fortschritt bis zum nächsten Wechsel als dünner Ring um den Stern.
     if (z.auto && !REDUZIERT) {
-      var pr = Math.min(1, vergangen / z.intervall), rb = orb + 9, ende = -Math.PI / 2 + pr * 6.283;
+      var pr = Math.min(1, vergangen / z.intervall), rb = 0.19 * S, ende = -Math.PI / 2 + pr * 6.283;
       var halt = maus || fokus;
-      ctx.strokeStyle = 'rgba(59,255,212,0.12)'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(ziel.x, ziel.y, rb, 0, 6.283); ctx.stroke();
-      ctx.strokeStyle = halt ? 'rgba(136,146,164,0.9)' : 'rgba(59,255,212,1)'; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(ziel.x, ziel.y, rb, -Math.PI / 2, ende); ctx.stroke(); ctx.lineCap = 'butt';
-      glow(ziel.x + Math.cos(ende) * rb, ziel.y + Math.sin(ende) * rb, 2.2, halt ? '136,146,164' : COL[0], 1);
+      ctx.strokeStyle = 'rgba(' + CYAN + ',0.1)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, rb, 0, 6.283); ctx.stroke();
+      ctx.strokeStyle = halt ? 'rgba(136,146,164,0.8)' : 'rgba(' + CYAN + ',0.85)'; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(cx, cy, rb, -Math.PI / 2, ende); ctx.stroke(); ctx.lineCap = 'butt';
       ctx.lineWidth = 1;
     }
   }
