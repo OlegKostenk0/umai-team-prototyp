@@ -225,7 +225,7 @@
   // Hintergrund-Netz wie auf der Startseite, nur dezenter: viele Punkte in
   // unregelmäßigen Schalen, leicht gestaucht und mit Mittelfurche und Windungen,
   // damit es eher wie ein Gehirn als wie eine glatte Kugel wirkt.
-  var N = HANDY ? 260 : 520;
+  var N = HANDY ? 480 : 1100;
   var gold = Math.PI * (3 - Math.sqrt(5));
   var pts = [];
   for (var i = 0; i < N; i++) {
@@ -233,7 +233,7 @@
     var rr = Math.sqrt(1 - y * y);
     var th = gold * i, ph = Math.acos(y);
     var x0 = Math.cos(th) * rr, z0 = Math.sin(th) * rr;
-    var windung = 1 + 0.07 * Math.sin(5 * th) * Math.sin(4 * ph);
+    var windung = 1 + 0.07 * Math.sin(5 * th) * Math.sin(4 * ph) + 0.035 * Math.sin(13 * th + 1.3) * Math.sin(11 * ph);
     var schale = (0.62 + 0.38 * Math.sqrt(Math.random())) * windung;
     var gx = x0 * schale * 1.16, gy = y * schale * 0.86, gz = z0 * schale;
     gx += (gx < 0 ? -1 : 1) * 0.07;
@@ -285,15 +285,23 @@
       var z2 = p.y * Math.sin(tilt) + z1 * Math.cos(tilt);
       return { x: cx + x1 * Rs * p.k, y: cy + y2 * Rs * p.k, d: (z2 + 1) / 2, c: p.c };
     });
-    ctx.lineWidth = 1;
-    proj.forEach(function (a, ai) {
-      nb[ai].forEach(function (bi) {
-        var b = proj[bi];
-        ctx.strokeStyle = 'rgba(59,255,212,' + (0.055 * einflug * (a.d + b.d) / 2) + ')';
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      });
-    });
-    proj.forEach(function (p) { glow(p.x, p.y, 0.5 + 0.9 * p.d, COL[p.c], einflug * (0.08 + 0.38 * p.d)); });
+    ctx.lineWidth = 0.8;
+    for (var gruppe = 0; gruppe < 4; gruppe++) {
+      ctx.strokeStyle = 'rgba(59,255,212,' + (0.07 * einflug * (gruppe + 0.5) / 2) + ')';
+      ctx.beginPath();
+      for (var ai = 0; ai < proj.length; ai++) {
+        var pa = proj[ai];
+        for (var ni = 0; ni < nb[ai].length; ni++) {
+          var bi = nb[ai][ni];
+          if (bi < ai) continue;
+          var pb = proj[bi];
+          if (Math.min(3, Math.floor((pa.d + pb.d) * 2)) !== gruppe) continue;
+          ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
+        }
+      }
+      ctx.stroke();
+    }
+    proj.forEach(function (p) { glow(p.x, p.y, 0.4 + 0.75 * p.d, COL[p.c], einflug * (0.07 + 0.34 * p.d)); });
 
     var knoten = TEAMS.map(function (_, k) {
       var a = -Math.PI / 2 + (k * 2 * Math.PI) / TEAMS.length;
