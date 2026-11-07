@@ -4,6 +4,10 @@ Klickbarer Prototyp für [Issue #115](https://github.com/UM-AI-ORG/Mannheim-AI-W
 
 **Ansehen:** https://olegkostenk0.github.io/umai-team-prototyp/
 
+## Neu: 4 Entwürfe für mehr Überblick (07.11.2026)
+
+Feedback zum Orbit: zu wenige Mitglieder auf einmal sichtbar. Unter [`/ueberblick/`](https://olegkostenk0.github.io/umai-team-prototyp/ueberblick/) liegen vier Entwürfe zur Abstimmung, die alle 48 Plätze direkt zeigen: A Struktur-Spalten, B Porträt-Mosaik, C Kosmos-Netz, D Gesichter-Wand. Verteilung auf die Ressorts angenommen, Platzhalter ohne Namen.
+
 ## Aktueller Entwurf: C „Orbit im Kosmos“
 
 Das Team hat sich für Variante C entschieden. Der Entwurf auf der Startseite des Prototyps enthält:
